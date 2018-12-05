@@ -1,5 +1,155 @@
-<apex:page controller="Connect_Pendencia">
+<apex:page controller="Connect_Pendencia" standardStylesheets="false" showHeader="false" sidebar="false">
+	<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+	<script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
 
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/vue-resource/1.5.1/vue-resource.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.js"></script>
 
+	<link href='https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900|Material+Icons' rel="stylesheet" />
+	<link href="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.min.css" rel="stylesheet" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui" />
 
+	<html xmlns:v-bind="http://vue.org" xmlns:v-on="http://vue.org">
+
+	<body>
+		<div id="app">
+			<v-app>
+				<v-container fluid="true">
+					<v-layout>
+						<!-- MENU -->
+						<v-flex xs3="true">
+							<v-navigation-drawer permanent="true" absolute="true" dark="true">
+								<v-toolbar>
+									<v-list>
+										<v-list-tile>
+											<v-list-tile-title class="title">
+												Menu
+											</v-list-tile-title>
+										</v-list-tile>
+									</v-list>
+								</v-toolbar>
+
+								<v-divider></v-divider>
+
+								<v-list dense="" class="pt-0">
+									<v-list-tile v-for="item in items" v-bind:key="item.title" v-on:click="mudarPagina(item.app);">
+
+										<v-list-tile-action>
+											<v-icon>{{ item.icon }}</v-icon>
+										</v-list-tile-action>
+
+										<v-list-tile-content>
+											<v-list-tile-title>{{ item.title }}</v-list-tile-title>
+										</v-list-tile-content>
+
+									</v-list-tile>
+								</v-list>
+							</v-navigation-drawer>
+						</v-flex>
+
+						<!-- CONTEÚDO -->
+						<v-flex xs8="true">
+							<v-content>
+
+								<div v-show="showListaPendencia">
+									<h1>Lista Pendencia</h1>
+								</div>
+
+								<div v-show="showListaTratativa">
+									<h1>Lista Tratativas</h1>
+								</div>
+
+							</v-content>
+						</v-flex>
+					</v-layout>
+				</v-container>
+
+			</v-app>
+		</div>
+
+		<script>
+
+			var menu_lateral = new Vue({
+				el: '#app',
+				data: {
+
+					items: [
+						{ title: 'Pendência', icon: 'dashboard', app: 'listaPendencias' },
+						{ title: 'Sobre', icon: 'question_answer', app: 'listaTratativas' }
+					],
+					showListaPendencia: false,
+					showListaTratativa: false,
+					right: null,
+					accessToken: '',
+					listaPedidos: []
+				},
+
+				methods: {
+					mudarPagina: function (pagina) {
+						this.showListaPendencia = false;
+						this.showListaTratativa = false;
+
+						console.log('Acionou : ' + pagina);
+						switch (pagina) {
+							case 'listaPendencias':
+								console.log('Entrou case listaPendencia');
+								this.showListaPendencia = true;
+								break;
+							case 'listaTratativas':
+								console.log('Entrou case listaTratativa');
+								this.showListaTratativa = true;
+								break;
+						}
+					},
+
+					autenticacao: function () {
+						console.log('Função autenticação');
+						// GET request
+						this.$http.get('http://api.connectparts.com.br:8032/OAuth/Token',
+							{ params: { username: 'leonardosantos', password: 'Connect%402018' } }).then(response => {
+								//console.log(response.body.access_token);
+								//this.$set('accessToken', response.body.access_token);
+								this.accessToken = response.body.access_token;
+							}, response => {
+								console.log('Erro: ' + response);
+							});
+					},
+
+					listarPedidos: function () {
+						//'bearer ' + this.accessToken
+						let headers = 'bearer 5WB0vdtD4lUOJi310N4hE09m8KKOyKQ0JogfuUJENZ1K2absqFbxeY0_6pdIxmL6K2HrdEjfy7e0uq7YEs8cROyZlXp4fjPDCWxD18BbpnG2K2nBIuCL2n4MWHuk800Y-QAU0V7k3ulDELobqN4aGwhIgB5ol-gXfXDrFfJsGIXLk29UCRurtQnEhc_4EBeR4J5mcq-yRAXD-BOvnAIXw4EGYPqa-AP9BVNKX8cbm4Kig-AIWMD4J-Tq2rPbMg_jXsnm1wN9o_9dbTkKVZmh-5UvOio';
+						this.$http.get('http://api.connectparts.com.br:8032/fenix/Pedido/ListarSimples?statusCodigo=8%2C9&limite=10',
+							{ headers: { 'Authorization': headers } }).then(response => {
+								//this.$set('listaPedidos', response.body)
+								console.log(response.body);
+								this.listaPedidos = response.body;
+							}, response => {
+								console.log('Erro: ' + response);
+							});
+					},
+
+					criarNovaDespesa: function (descricao, tipo, valor) {
+						var despesa = {
+							descricao: descricao,
+							tipo: tipo,
+							valor: valor
+						};
+
+						var novaDespesaKey = firebase.database().ref().child('despesas').push().key;
+
+						var updates = {};
+						updates['/despesas/' + novaDespesaKey] = despesa;
+
+						return firebase.database().ref().update(updates);
+					}
+				},
+				created: function () {
+					//this.autenticacao();
+					//this.listarPedidos();
+				},
+			});
+		</script>
+	</body>
+
+	</html>
 </apex:page>
