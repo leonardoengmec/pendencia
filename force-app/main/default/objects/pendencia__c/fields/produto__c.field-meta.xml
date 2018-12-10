@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>produto__c</fullName>
+    <description>Produto que está em pendência</description>
+    <externalId>false</externalId>
+    <label>Produto</label>
+    <referenceTo>DK__c</referenceTo>
+    <relationshipLabel>Eventos de Pendência</relationshipLabel>
+    <relationshipName>pendencias</relationshipName>
+    <relationshipOrder>0</relationshipOrder>
+    <reparentableMasterDetail>false</reparentableMasterDetail>
+    <trackHistory>false</trackHistory>
+    <trackTrending>false</trackTrending>
+    <type>MasterDetail</type>
+    <writeRequiresMasterRead>false</writeRequiresMasterRead>
+</CustomField>

@@ -1,9 +1,8 @@
-<apex:page controller="Connect_Pendencia" standardStylesheets="false" showHeader="false" sidebar="false">
+<apex:page controller="Connect_PendenciaController" standardStylesheets="false" showHeader="false" sidebar="false">
 	<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
-	<script src="https://unpkg.com/vue-router/dist/vue-router.js"></script>
-
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/vue-resource/1.5.1/vue-resource.min.js"></script>
+	<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/vue-resource/1.5.1/vue-resource.min.js"></script> -->
 	<script src="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.js"></script>
+	<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 
 	<link href='https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900|Material+Icons' rel="stylesheet" />
 	<link href="https://cdn.jsdelivr.net/npm/vuetify/dist/vuetify.min.css" rel="stylesheet" />
@@ -14,45 +13,216 @@
 	<body>
 		<div id="app">
 			<v-app>
-				<v-container fluid="true">
+
+				<!-- MENU -->
+				<v-navigation-drawer v-bind:app="true" v-bind:fixed="true" v-bind:clipped="true" width="200" v-bind:dark="true">
+					<v-toolbar>
+						<v-list>
+							<v-list-tile>
+								<v-list-tile-title class="title">
+									Menu
+								</v-list-tile-title>
+							</v-list-tile>
+						</v-list>
+					</v-toolbar>
+
+					<v-divider></v-divider>
+
+					<v-list v-bind:dense="true" class="pt-0">
+						<v-list-tile v-for="item in items" v-bind:key="item.title" v-on:click="mudarPagina(item.app);">
+
+							<v-list-tile-action>
+								<v-icon>{{ item.icon }}</v-icon>
+							</v-list-tile-action>
+
+							<v-list-tile-content>
+								<v-list-tile-title>{{ item.title }}</v-list-tile-title>
+							</v-list-tile-content>
+
+						</v-list-tile>
+					</v-list>
+				</v-navigation-drawer>
+
+				<!-- CONTEÚDO -->
+				<v-container v-bind:fluid="true">
 					<v-layout>
-						<!-- MENU -->
-						<v-flex xs3="true">
-							<v-navigation-drawer permanent="true" absolute="true" dark="true">
-								<v-toolbar>
-									<v-list>
-										<v-list-tile>
-											<v-list-tile-title class="title">
-												Menu
-											</v-list-tile-title>
-										</v-list-tile>
-									</v-list>
-								</v-toolbar>
-
-								<v-divider></v-divider>
-
-								<v-list dense="" class="pt-0">
-									<v-list-tile v-for="item in items" v-bind:key="item.title" v-on:click="mudarPagina(item.app);">
-
-										<v-list-tile-action>
-											<v-icon>{{ item.icon }}</v-icon>
-										</v-list-tile-action>
-
-										<v-list-tile-content>
-											<v-list-tile-title>{{ item.title }}</v-list-tile-title>
-										</v-list-tile-content>
-
-									</v-list-tile>
-								</v-list>
-							</v-navigation-drawer>
-						</v-flex>
-
-						<!-- CONTEÚDO -->
-						<v-flex xs8="true">
+						<v-flex>
 							<v-content>
 
 								<div v-show="showListaPendencia">
-									<h1>Lista Pendencia</h1>
+									<!-- MENU CATEGORIAS -->
+									<v-tabs slot="extension" v-model="tab" color="orange lighten-3" v-bind:grow="true">
+										<v-tabs-slider color="orange darken-4"></v-tabs-slider>
+
+										<v-tab v-for="item in categorias" v-bind:key="item" v-on:click="pendenciasPorCategoria(item);">
+											{{ item }}
+										</v-tab>
+									</v-tabs>
+
+									<!-- CONTEÚDO MENU CATEGORIAS -->
+									<v-tabs-items v-model="tab">
+										<v-tab-item v-for="item in categorias" v-bind:key="item">
+											<v-card>
+
+												<!-- TITULO CATEGORIA -->
+												<v-card-text>
+													<h2>{{item}}</h2>
+												</v-card-text>
+
+												<!-- TABELA PENDENCIAS -->
+												<v-card-text>
+
+													<!-- EDITAR -->
+													<v-dialog v-model="dialogPendencia" max-width="700px" class="elevation-1">
+														<v-card>
+															<v-card-title>
+																<span class="headline">Editar Pendência</span>
+															</v-card-title>
+
+															<v-card-text>
+																<v-container v-bind:grid-list-md="true">
+																	<v-form ref="form" v-model="valid" v-bind:lazy-validation="true">
+																		<v-layout>
+																			<v-flex>
+																				<v-text-field v-model="editedItem.produto__r.Name" label="DK" v-bind:disabled="true"></v-text-field>
+																			</v-flex>
+																			<v-flex>
+																				<v-text-field v-model="editedItem.produto__r.classe__c" label="Classe" v-bind:disabled="true"></v-text-field>
+																			</v-flex>
+																			<v-flex>
+																				<v-text-field v-model="editedItem.produto__r.marca__c" label="Marca" v-bind:disabled="true"></v-text-field>
+																			</v-flex>
+																			<v-flex>
+																				<v-text-field v-model="editedItem.produto__r.giro__c" label="Giro" v-bind:disabled="true"></v-text-field>
+																			</v-flex>
+																		</v-layout>
+																		<v-layout>
+																			<v-flex>
+																				<v-text-field v-model="editedItem.produto__r.nome__c" label="Nome do produto" v-bind:disabled="true"></v-text-field>
+																			</v-flex>
+																		</v-layout>
+																		<v-layout>
+																			<v-flex>
+																				<v-combobox v-model="editedItem.statusCompras__c" v-bind:items="statusCompras" label="Status Compras"></v-combobox>
+																			</v-flex>
+																			<v-flex>
+																				<v-combobox v-model="editedItem.statusAtendimento__c" v-bind:items="statusAtendimento" label="Status Atendimento"></v-combobox>
+																			</v-flex>
+																			<v-flex>
+																				<v-menu v-bind:close-on-content-click="false" v-model="menuData" v-bind:nudge-right="40" v-bind:lazy="true" transition="scale-transition"
+																				 v-bind:offset-y="true" v-bind:full-width="true" min-width="290px">
+																					<v-text-field slot="activator" v-model="editedItem.previsaoEntrega__c" label="Previsão de entrega" prepend-icon="event" v-bind:readonly="true"></v-text-field>
+																					<v-date-picker v-model="editedItem.previsaoEntrega__c" v-on:input="menuData = false" ></v-date-picker>
+																				</v-menu>
+																			</v-flex>
+																		</v-layout>
+																		<v-layout>
+																			<v-flex>
+																				<v-text-field v-model="editedItem.pedidoCompra__c" label="Pedido de compra" ></v-text-field>
+																			</v-flex>
+																			<v-flex>
+																				<v-text-field v-model="editedItem.notaFiscal__c" label="Nota fiscal"></v-text-field>
+																			</v-flex>
+																			<v-flex>
+																				<v-text-field v-model="editedItem.quantidadeNota__c" label="Quantidade NF" ></v-text-field>
+																			</v-flex>
+																		</v-layout>
+																		<v-layout>
+																			<v-flex>
+																				<v-text-field v-model="editedItem.fornecedores__c" label="Fornecedor"></v-text-field>
+																			</v-flex>
+																			<v-flex>
+																				<v-text-field v-model="editedItem.produto__r.codigoFornecedor__c" label="Código fornecedor"></v-text-field>
+																			</v-flex>
+																			<v-flex>
+																				<v-text-field v-model="editedItem.transportadora__c" label="Transportadora"></v-text-field>
+																			</v-flex>
+																		</v-layout>
+																		<v-layout>
+																			<v-flex>
+																				<v-textarea v-model="editedItem.observacao__c" label="Observações" rows="2"></v-textarea>
+																			</v-flex>
+																		</v-layout>
+																	</v-form>
+																</v-container>
+															</v-card-text>
+
+															<v-card-actions>
+																<v-spacer></v-spacer>
+																<v-btn color="blue darken-1" v-bind:flat="true" v-on:click="closePendencia">Cancelar</v-btn>
+																<v-btn color="blue darken-1" v-bind:flat="true" v-on:click="savePendencia">Salvar</v-btn>
+															</v-card-actions>
+														</v-card>
+													</v-dialog>
+
+													<v-dialog v-model="dialogItem" max-width="700px" class="elevation-1">
+															<v-card>
+																<v-card-title>
+																	<span class="headline">Cadastrar Item</span>
+																</v-card-title>
+	
+																<v-card-text>
+																		<v-layout>
+																				<v-flex>
+																					<v-text-field v-model="inserirProduto.DK" label="DK" v-on:change="buscarInfoDK"></v-text-field>
+																				</v-flex>
+																		</v-layout>
+																		<v-layout>
+																				<v-flex>
+																					<v-textarea v-model="inserirProduto.diferencas" label="Diferenças" rows="2"></v-textarea>
+																				</v-flex>
+																			</v-layout>
+																</v-card-text>
+
+																<v-card-actions>
+																		<v-spacer></v-spacer>
+																		<v-btn color="blue darken-1" v-bind:flat="true" v-on:click="closeInserirItem">Cancelar</v-btn>
+																		<v-btn color="blue darken-1" v-bind:flat="true" v-on:click="saveInserirItem">Salvar</v-btn>
+																	</v-card-actions>
+
+															</v-card>
+													</v-dialog>
+
+													<template>
+														<v-text-field v-model="search" append-icon="search" label="Procurar" v-bind:single-line="true" v-bind:hide-details="true"></v-text-field>
+													</template>
+
+													<v-data-table v-bind:headers="headers" v-bind:items="listaProdutos" v-bind:search="search" class="elevation-1" item-key="produto__r.Name">
+														<template slot="items" slot-scope="props">
+															<tr v-on:click="props.expanded = !props.expanded">
+																<td>{{ props.item.produto__r.Name }}</td>
+																<td>{{ props.item.produto__r.nome__c }}</td>
+																<td>{{ props.item.produto__r.classe__c }}</td>
+																<td>{{ props.item.produto__r.marca__c }}</td>
+																<td>{{ new Date(props.item.CreatedDate).toLocaleDateString() }}</td>
+																<td>{{ props.item.statusCompras__c }}</td>
+																<td class="justify-center layout px-0">
+																	<v-icon v-bind:small="true" class="mr-2" v-on:click="editPendencia(props.item)">edit</v-icon>
+																	<v-icon v-bind:small="true" class="mr-2" v-on:click="inserirItem()">loop</v-icon>
+																</td>
+															</tr>
+														</template>
+														<template slot="expand" slot-scope="props">
+															<v-card v-bind:flat="true">
+																<v-card-text>
+																	<strong>Nota Fiscal: </strong>{{ props.item.notaFiscal__c }}
+																	<br/>
+																	<strong>Fornecedores: </strong>{{ props.item.fornecedores__c }}
+																	<br/>
+																	<strong>Previsão de entrega: </strong>{{ props.item.previsaoEntrega__c }}
+																</v-card-text>
+															</v-card>
+														</template>
+														<template slot="no-data">
+															<v-alert slot="no-results" v-bind:value="true" color="error" icon="warning">
+																A sua procura não retornou nenhum resultado.
+															</v-alert>
+														</template>
+													</v-data-table>
+												</v-card-text>
+											</v-card>
+										</v-tab-item>
+									</v-tabs-items>
 								</div>
 
 								<div v-show="showListaTratativa">
@@ -69,9 +239,21 @@
 
 		<script>
 
-			var menu_lateral = new Vue({
+			var app = new Vue({
 				el: '#app',
+
 				data: {
+
+					drawer: null,
+					tab: null,
+					categorias: [
+						'Acessórios',
+						'Importados',
+						'Motocicleta',
+						'Som Automotivo',
+						'Áudio e Vídeo',
+						'Iluminaçao'
+					],
 
 					items: [
 						{ title: 'Pendência', icon: 'dashboard', app: 'listaPendencias' },
@@ -80,11 +262,90 @@
 					showListaPendencia: false,
 					showListaTratativa: false,
 					right: null,
-					accessToken: '',
-					listaPedidos: []
+
+					// TABELA
+					search: '',
+					dialogPendencia: false,
+					dialogItem: false,
+					headers: [
+						{ text: 'DK', value: 'produto__r.Name' },
+						{ text: 'Nome', value: 'produto__r.nome__c' },
+						{ text: 'Classe', value: 'produto__r.classe__c' },
+						{ text: 'Marca', value: 'produto__r.marca__c' },
+						{ text: 'Data', value: 'CreatedDate' },
+						{ text: 'Status Compras', value: 'statusCompras__c' },
+						{ text: 'Ação', value: 'acao', sortable: false }],
+
+					listaProdutos: [],
+
+					// DIALOG
+					editedIndex: -1,
+					editedItem: {
+						produto__r: [],
+						status__c: '',
+						statusCompras__c: '',
+						statusAtendimento__c: '',
+						previsaoEntrega__c: '',
+						observacao__c: '',
+						pedidoCompra__c: '',
+						notaFiscal__c: '',
+						fornecedores__c: '',
+						transportadora__c: '',
+						pedidoMaisAntigo__c: '',
+						quantidadeNota__c: ''
+					},
+					defaultItem: {
+						produto__r: [],
+						status__c: '',
+						statusCompras__c: '',
+						statusAtendimento__c: '',
+						previsaoEntrega__c: '',
+						observacao__c: '',
+						pedidoCompra__c: '',
+						notaFiscal__c: '',
+						fornecedores__c: '',
+						transportadora__c: '',
+						pedidoMaisAntigo__c: '',
+						quantidadeNota__c: ''
+					},
+
+					valid: true,
+					menuData: false,
+
+					statusCompras: [
+						'OFERECER SIMILAR',
+						'INDISPONÍVEL FORNECEDOR',
+						'COMPRADO'
+					],
+					statusAtendimento: [
+						'CANCELAR',
+						'OFERECER SIMILAR'
+					],
+
+					inserirProduto: {
+						DK: '',
+						diferencas:'',
+					}
+				},
+
+				watch: {
+					dialogPendencia(val) {
+						val || this.closePendencia();
+					},
+					dialogItem(val) {
+						val || this.closeInserirItem();
+					}
+				},
+
+				computed: {
+					dataCerta: function () {
+						d = new Date(this.CreatedDate).toLocaleDateString;
+						return d;
+					}
 				},
 
 				methods: {
+
 					mudarPagina: function (pagina) {
 						this.showListaPendencia = false;
 						this.showListaTratativa = false;
@@ -102,51 +363,72 @@
 						}
 					},
 
-					autenticacao: function () {
-						console.log('Função autenticação');
-						// GET request
-						this.$http.get('http://api.connectparts.com.br:8032/OAuth/Token',
-							{ params: { username: 'leonardosantos', password: 'Connect%402018' } }).then(response => {
-								//console.log(response.body.access_token);
-								//this.$set('accessToken', response.body.access_token);
-								this.accessToken = response.body.access_token;
-							}, response => {
-								console.log('Erro: ' + response);
-							});
+					pendenciasPorCategoria: function (categoria) {
+						Visualforce.remoting.Manager.invokeAction('{!$RemoteAction.Connect_PendenciaController.pendenciasPorCategoria}',
+							categoria,
+							function (result, event) {
+								if (event.status) {
+									if (result != null) {
+										console.log('Pendências' + result);
+										app.listaProdutos = result;
+									}
+								}
+							}, { escape: false });
 					},
 
-					listarPedidos: function () {
-						//'bearer ' + this.accessToken
-						let headers = 'bearer 5WB0vdtD4lUOJi310N4hE09m8KKOyKQ0JogfuUJENZ1K2absqFbxeY0_6pdIxmL6K2HrdEjfy7e0uq7YEs8cROyZlXp4fjPDCWxD18BbpnG2K2nBIuCL2n4MWHuk800Y-QAU0V7k3ulDELobqN4aGwhIgB5ol-gXfXDrFfJsGIXLk29UCRurtQnEhc_4EBeR4J5mcq-yRAXD-BOvnAIXw4EGYPqa-AP9BVNKX8cbm4Kig-AIWMD4J-Tq2rPbMg_jXsnm1wN9o_9dbTkKVZmh-5UvOio';
-						this.$http.get('http://api.connectparts.com.br:8032/fenix/Pedido/ListarSimples?statusCodigo=8%2C9&limite=10',
-							{ headers: { 'Authorization': headers } }).then(response => {
-								//this.$set('listaPedidos', response.body)
-								console.log(response.body);
-								this.listaPedidos = response.body;
-							}, response => {
-								console.log('Erro: ' + response);
-							});
+					editPendencia: function (item) {
+						this.editedIndex = app.listaProdutos.indexOf(item);
+						this.editedItem = Object.assign({}, item);
+						this.dialogPendencia = true;
 					},
 
-					criarNovaDespesa: function (descricao, tipo, valor) {
-						var despesa = {
-							descricao: descricao,
-							tipo: tipo,
-							valor: valor
-						};
+					inserirItem: function () {
+						this.dialogItem = true;
+					},
 
-						var novaDespesaKey = firebase.database().ref().child('despesas').push().key;
+					closePendencia: function () {
+						this.dialogPendencia = false,
+							setTimeout(() => {
+								this.editedItem = Object.assign({}, this.defaultItem)
+								this.editedIndex = -1
+							}, 300)
+					},
 
-						var updates = {};
-						updates['/despesas/' + novaDespesaKey] = despesa;
+					closeInserirItem: function () {
+						this.dialogItem = false;
+					},
 
-						return firebase.database().ref().update(updates);
+					savePendencia: function () {
+						if (this.editedIndex > -1) {
+							Object.assign(app.listaProdutos[this.editedIndex], this.editedItem)
+						} else {
+							this.desserts.push(this.editedItem)
+						}
+						this.closePendencia()
+					},
+
+					saveInserirItem: function () {
+						this.closeInserirItem()
+					},
+
+					buscarInfoDK: function () {
+						Visualforce.remoting.Manager.invokeAction('{!$RemoteAction.Connect_PendenciaController.buscarProduto}',
+							app.inserirItem.DK,
+							function (result, event) {
+								if (event.status) {
+									if (result != null) {
+										//console.log('Pendências' + result);
+										//app.inserirItem = result;
+									}
+								}
+							}, { escape: false });
+					},
+
+					created: function () {
+						//this.autenticacao();
+						//this.listarPedidos();
 					}
-				},
-				created: function () {
-					//this.autenticacao();
-					//this.listarPedidos();
-				},
+				}
 			});
 		</script>
 	</body>
